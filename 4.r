@@ -156,3 +156,173 @@
          )
     # Add points from prediction_data, colored green
         geom_point(color="green",data=prediction_data)
+#Coefficient of determination
+    # Print a summary of mdl_click_vs_impression_orig
+        summary(mdl_click_vs_impression_orig)
+    # Print a summary of mdl_click_vs_impression_trans
+        summary(mdl_click_vs_impression_trans)
+    # Get coeff of determination for mdl_click_vs_impression_orig
+        mdl_click_vs_impression_orig %>% 
+    # Get the model-level details
+        glance(mdl_click_vs_impression_orig) %>% 
+    # Pull out r.squared
+        pull(r.squared)
+
+    # Do the same for the transformed model
+        mdl_click_vs_impression_trans %>%  glance(mdl_click_vs_impression_trans) %>% 
+    # Pull out r.squared
+        pull(r.squared)
+#mdl_click_vs_impression_orig has a coefficient of determination of 0.89. Which statement about the model is true?
+    The number of impressions explains 89% of the variability in the number of clicks.
+#Which model does the coefficient of determination suggest gives a better fit?
+    The transformed model, mdl_click_vs_impression_trans
+#Residual standard error
+    # Get RSE for mdl_click_vs_impression_orig
+        mdl_click_vs_impression_orig %>% 
+     # Get the model-level details
+        glance(mdl_click_vs_impression_orig) %>% 
+    # Pull out sigma
+        pull(sigma)
+
+    # Do the same for the transformed model
+        mdl_click_vs_impression_trans %>% 
+    # Get the model-level details
+        glance(mdl_click_vs_impression_trans) %>% 
+    # Pull out sigma
+        pull(sigma)
+    #mdl_click_vs_impression_orig has an RSE of 20. Which statement is true?
+        The typical difference between observed number of clicks and predicted number of clicks is 20.
+    #Which model does the RSE suggest gives more accurate predictions?
+        The transformed model, mdl_click_vs_impression_trans.
+#Look at the numbers on the y-axis scales, and how well the trend lines follow the  line. Which statement is true?
+    The residuals track the " equals 0" line more closely in the transformed model compared to the original model, indicating that the transformed model is a better fit for the data.
+#Look at how well the points track the "normality" line. Which statement is true?
+    The residuals track the "normality" line more closely in the transformed model compared to the original model, indicating that the transformed model is a better fit for the data.
+#Look at the numbers on the y-axis and the slope of the trend line. Which statement is true?
+    The size of the standardized residuals is more consistent in the transformed model compared to the original model, indicating that the transformed model is a better fit for the data.
+#Drawing diagnostic plots
+    # Plot the three diagnostics for mdl_price_vs_conv
+     library(ggplot2)
+        library(ggfortify)
+        autoplot(mdl_price_vs_conv, which=1:3,nrow=3,ncol=1)
+#Leverage
+    #Guess which observations you think will have a high leverage, then move the slider to find out.
+    #Which statement is true?
+        Observations with a large distance to the nearest MRT station have the highest leverage, because most of the observations have a short distance, so long distances are more extreme.
+#Influence
+    #Guess which observations you think will have a high influence, then move the slider to find out.
+    #Which statement is true?
+        Observations with predictions far away from the trend line have high influence, because they have large residuals and are far away from other observations.
+#Extracting leverage and influence
+         mdl_price_vs_dist %>% 
+    # Augment the model
+         augment() %>% 
+    # Arrange rows by descending leverage
+        arrange(desc(.hat)) %>% 
+    # Get the head of the dataset
+        head()
+    mdl_price_vs_dist %>% 
+    # Augment the model
+        augment() %>% 
+    # Arrange rows by descending Cook's distance
+        arrange(desc(.cooksd)) %>% 
+    # Get the head of the dataset
+        head()
+    # Plot the three outlier diagnostics for mdl_price_vs_conv
+        autoplot(
+         mdl_price_vs_dist,
+         which = 4:6,
+         nrow=3,
+         ncol=1
+        )
+# Using churn, plot time_since_last_purchase
+        ggplot(
+        churn,
+        aes(time_since_last_purchase)
+        ) +
+     # as a histogram with binwidth 0.25
+         geom_histogram(binwidth=0.25)+
+    # faceted in a grid with has_churned on each row
+        facet_grid(rows=vars(has_churned))
+    # Redraw the plot with time_since_first_purchase
+        ggplot(
+        churn,
+        aes(time_since_first_purchase)
+        ) + geom_histogram(binwidth=0.25)+
+         facet_grid(rows=vars(has_churned))
+#Visualizing linear and logistic models
+    # Using churn plot has_churned vs. time_since_first_purchase
+        ggplot(
+        churn,
+        aes(time_since_first_purchase,has_churned)
+        ) +
+         # Make it a scatter plot
+        geom_point() +
+        # Add an lm trend line, no std error ribbon, colored red
+        geom_smooth(method="lm",se=FALSE,color="red")
+         # Add a glm trend line, no std error ribbon, binomial family
+        geom_smooth(method = "glm", se = FALSE, color = "red",    method.args=list(family=binomial))
+#Logistic regression with glm()
+    mdl_churn_vs_relationship <- glm(formula=has_churned~time_since_first_purchase,data=churn,family=binomial)
+#Probabilities
+    # Make a data frame of predicted probabilities
+        prediction_data <- explanatory_data %>% 
+        mutate(
+        has_churned=predict(mdl_churn_vs_relationship,explanatory_data,
+        type="response")
+        )
+    # Add points from prediction_data, colored yellow, size 2
+        geom_point(data=prediction_data,color="yellow",size=2)
+#Most likely outcome
+    # Update the data frame
+        prediction_data <- explanatory_data %>% 
+        mutate(   
+         has_churned = predict(mdl_churn_vs_relationship, explanatory_data, type = "response"),
+    # Add the most likely churn outcome
+          most_likely_outcome =round(has_churned)
+        )
+
+    # See the result
+        prediction_data
+     # Add most likely outcome points from prediction_data, 
+     # colored yellow, size 2
+        geom_point(aes(y=most_likely_outcome),data=prediction_data,color="yellow",size=2)
+#odds Ratio
+    # Add the odds ratio
+         odds_ratio = has_churned/(1-has_churned)
+    # Using prediction_data, plot odds_ratio vs. time_since_first_purchase
+        ggplot(prediction_data,aes(time_since_first_purchase,odds_ratio)) +
+      # Make it a line plot
+         geom_line()  +
+     # Add a dotted horizontal line at y = 1
+         geom_hline(yintercept=1,linetype="dotted")
+#Log odds ratio  
+      # Add the log odds ratio from odds_ratio
+            log_odds_ratio = log(odds_ratio),
+        # Add the log odds ratio using predict()
+            log_odds_ratio2 = predict(mdl_churn_vs_relationship,explanatory_data)
+         )
+     # Use a logarithmic y-scale
+        scale_y_log10()
+#Calculating the confusion matrix
+    # Get the actual responses from the dataset
+        actual_response <- churn$has_churned
+
+    # Get the "most likely" responses from the model
+        predicted_response <- round(fitted(mdl_churn_vs_relationship))
+
+    # Create a table of counts
+        outcomes <- table(predicted_response,actual_response)
+
+    #   See the result
+        outcomes
+#Measuring logistic model performance
+    # Convert outcomes to a yardstick confusion matrix
+        confusion <- conf_mat(outcomes)
+
+    # Plot the confusion matrix
+
+        autoplot(confusion)
+
+    # Get performance metrics for the confusion matrix
+        summary(confusion,event_level="second")
